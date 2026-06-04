@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>资料预览 - FORYAL CRM</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #15211d;
+        --muted: #65736d;
+        --brand: #11866f;
+        --line: #d8e1dc;
+        --paper: #fbfcfa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        color: var(--ink);
+        background: #f4f7f5;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+      h1 { margin: 0; font-size: 22px; }
+      p { color: var(--muted); }
+      main {
+        display: grid;
+        gap: 16px;
+        max-width: 1180px;
+        margin: 18px auto;
+        padding: 0 18px 28px;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        padding: 16px;
+      }
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+      }
+      .meta div {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: var(--paper);
+      }
+      .meta span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .meta strong {
+        display: block;
+        margin-top: 4px;
+        overflow-wrap: anywhere;
+      }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+      button, a.button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 14px;
+        background: #fff;
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .primary {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+      iframe, img, video {
+        width: 100%;
+        min-height: 68vh;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+      }
+      img, video {
+        width: auto;
+        max-width: 100%;
+        min-height: auto;
+        max-height: 72vh;
+        display: block;
+        margin: 0 auto;
+      }
+      .empty { text-align: center; padding: 70px 16px; }
+      .small { font-size: 12px; color: var(--muted); }
+      .office-note {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+      }
+      .office-note p { margin: 4px 0 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>FORYAL 资料在线预览</h1>
+        <p id="subtitle">正在载入资料...</p>
+      </div>
+      <div class="actions">
+        <a class="button primary" id="downloadBtn" href="#">下载资料</a>
+      </div>
+    </header>
+    <main>
+      <section class="panel meta" id="meta"></section>
+      <section class="panel" id="viewer"><div class="empty">正在准备预览...</div></section>
+      <section class="panel small">说明：本页面会记录打开时间、下载次数，以及停留在本预览页的大致时长。若客户下载后在本地打开文件，本地阅读时长无法继续追踪。</section>
+    </main>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id") || "";
+      const startedAt = Date.now();
+      let lastSentSeconds = 0;
+      let fileRecord = null;
+
+      init();
+
+      async function init() {
+        if (!id) return renderError("缺少资料编号");
+        try {
+          const response = await fetch(`/api/tracking/file?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || data.error || "资料不存在");
+          fileRecord = data.file;
+          renderFile(fileRecord);
+          await sendEvent("open");
+          setInterval(() => sendHeartbeat(), 15000);
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") sendEvent("heartbeat", true);
+          });
+          window.addEventListener("pagehide", () => sendEvent("close", true));
+        } catch (error) {
+          renderError(error.message || "资料载入失败");
+        }
+      }
+
+      function renderFile(file) {
+        document.title = `${file.fileName || "资料预览"} - FORYAL CRM`;
+        document.querySelector("#subtitle").textContent = file.subject || file.customerName || "客户资料";
+        document.querySelector("#meta").innerHTML = [
+          ["文件名", file.fileName],
+          ["类型", file.type],
+          ["大小", formatFileSize(file.size)],
+          ["客户邮箱", file.recipientEmail],
+          ["创建时间", formatDate(file.createdAt)],
+        ].map(([label, value]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || "-")}</strong></div>`).join("");
+        const downloadUrl = `/api/tracking/download?id=${encodeURIComponent(file.id)}`;
+        document.querySelector("#downloadBtn").href = downloadUrl;
+        document.querySelector("#downloadBtn").addEventListener("click", () => sendEvent("download", true));
+        document.querySelector("#viewer").innerHTML = renderViewer(file);
+      }
+
+      function renderViewer(file) {
+        const url = file.blobUrl;
+        const type = String(file.type || "").toLowerCase();
+        const name = String(file.fileName || "").toLowerCase();
+        if (type.startsWith("image/")) return `<img src="${escapeAttr(url)}" alt="${escapeAttr(file.fileName)}" />`;
+        if (type === "application/pdf" || name.endsWith(".pdf")) return `<iframe src="${escapeAttr(url)}" title="${escapeAttr(file.fileName)}"></iframe>`;
+        if (type.startsWith("video/")) return `<video src="${escapeAttr(url)}" controls></video>`;
+        if (type.startsWith("text/") || /\.(txt|csv|html|htm|json|xml|md)$/i.test(name)) return `<iframe src="${escapeAttr(url)}" title="${escapeAttr(file.fileName)}"></iframe>`;
+        if (isOfficeDocument(type, name)) {
+          const viewerUrl = buildOfficeViewerUrl(url, "embed");
+          const openUrl = buildOfficeViewerUrl(url, "view");
+          return `<div class="office-note">
+            <div>
+              <strong>正在使用 Office 在线查看器预览</strong>
+              <p>如果预览加载较慢，请点击“新窗口打开”或下载后用 Excel / WPS / Office 检查。</p>
+            </div>
+            <div class="actions">
+              <a class="button" href="${escapeAttr(openUrl)}" target="_blank" rel="noreferrer">新窗口打开</a>
+              <a class="button primary" href="/api/tracking/download?id=${encodeURIComponent(file.id)}">下载资料</a>
+            </div>
+          </div>
+          <iframe src="${escapeAttr(viewerUrl)}" title="${escapeAttr(file.fileName)}"></iframe>`;
+        }
+        return `<div class="empty">
+          <h2>该格式不能在浏览器中完整预览</h2>
+          <p>Word / Excel / PPT 等文件通常需要下载后用 Office / WPS 检查完整排版。</p>
+          <a class="button primary" href="/api/tracking/download?id=${encodeURIComponent(file.id)}">下载资料</a>
+        </div>`;
+      }
+
+      function isOfficeDocument(type, name) {
+        return /officedocument|msword|ms-excel|ms-powerpoint|vnd\.ms-|vnd\.openxmlformats/i.test(type) ||
+          /\.(doc|docx|xls|xlsx|ppt|pptx)$/i.test(name);
+      }
+
+      function buildOfficeViewerUrl(fileUrl, mode) {
+        const endpoint = mode === "view" ? "view.aspx" : "embed.aspx";
+        return `https://view.officeapps.live.com/op/${endpoint}?src=${encodeURIComponent(fileUrl)}`;
+      }
+
+      async function sendHeartbeat() {
+        const activeSeconds = getActiveSeconds();
+        if (activeSeconds - lastSentSeconds < 10) return;
+        lastSentSeconds = activeSeconds;
+        await sendEvent("heartbeat", true);
+      }
+
+      async function sendEvent(eventType, keepalive = false) {
+        if (!id) return;
+        const body = JSON.stringify({
+          id,
+          eventType,
+          activeSeconds: getActiveSeconds(),
+          referrer: document.referrer || "",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+        });
+        if (keepalive && navigator.sendBeacon) {
+          navigator.sendBeacon("/api/tracking/event", new Blob([body], { type: "application/json" }));
+          return;
+        }
+        await fetch("/api/tracking/event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive,
+        }).catch(() => {});
+      }
+
+      function getActiveSeconds() {
+        return Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+      }
+
+      function renderError(message) {
+        document.querySelector("#subtitle").textContent = "资料无法打开";
+        document.querySelector("#viewer").innerHTML = `<div class="empty"><h2>${escapeHtml(message)}</h2><p>请联系 FORYAL 重新发送资料链接。</p></div>`;
+      }
+
+      function formatFileSize(size) {
+        const bytes = Number(size || 0);
+        if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+        if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${bytes} B`;
+      }
+
+      function formatDate(value) {
+        if (!value) return "-";
+        try { return new Date(value).toLocaleString(); } catch { return value; }
+      }
+
+      function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replace(/`/g, "&#96;");
+      }
+    </script>
+  </body>
+</html>

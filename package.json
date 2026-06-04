@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "check": "node --check app.js && node --check crm-data-store.js && node --check module-crud.js && node --check customer-crm.js && node --check compose.js && node --check middleware.js && node --check lib/shared-crm-mappers.js && node --check lib/shared-crm-service.js && node --check lib/supabase-repository.js && node --check api/shared-crm.js && node --check api/send-email.js && node --check api/ai-email.js && node --check api/ai-summary.js && node --check api/ai-task.js && node --check api/ai-website.js && node --check api/holidays.js && node --check api/mail/inbox.js && node --check api/_tracking-store.js && node --check api/blob/upload.js && node --check \"api/tracking/[action].js\" && node --check api/tracking/register.js && node --check api/tracking/file.js && node --check api/tracking/event.js && node --check api/tracking/download.js && node --check api/tracking/stats.js",
+    "test:shared-crm": "node test_shared_crm_service.js",
+    "test:email-ai": "node test_email_ai_static.js && node test_ai_email_handler.js",
+    "test:mail": "node test_email_ai_static.js && node test_ai_email_handler.js && node test_send_email_handler.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.4.0",
+    "nodemailer": "^8.0.9"
+  }
+}

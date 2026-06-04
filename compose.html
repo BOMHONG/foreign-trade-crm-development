@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>写邮件 - FORYAL CRM</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="compose-page">
+    <main class="compose-shell">
+      <header class="compose-topbar">
+        <div>
+          <p class="eyebrow">FORYAL EMAIL VIEW</p>
+          <h1>客户邮件工作台</h1>
+        </div>
+        <div class="compose-topbar-actions">
+          <a class="ghost-btn" href="./index.html">返回 CRM</a>
+          <button class="ghost-btn" id="clearComposePageBtn" type="button">清空正文</button>
+          <button class="ghost-btn" id="topPreviewEmailBtn" type="button">预览</button>
+        </div>
+      </header>
+
+      <section class="compose-email-workspace" aria-label="写邮件页面">
+        <div class="compose-top-workspace">
+          <form class="compose-standalone-form" id="composePageForm">
+            <div class="compose-field-row">
+              <label>To:
+                <input id="composeTo" name="to" type="text" inputmode="email" placeholder="customer@example.com；可多个邮箱用逗号/分号分隔" autocomplete="off" list="composeEmailMemoryList" required />
+              </label>
+              <label>Subject:
+                <input id="composeSubject" name="subject" placeholder="Subject" autocomplete="off" list="composeSubjectMemoryList" required />
+              </label>
+            </div>
+            <div class="compose-field-row">
+              <label>CC:
+                <input id="composeCc" name="cc" type="text" inputmode="email" placeholder="cc@example.com；可多个邮箱用逗号/分号分隔" autocomplete="off" list="composeEmailMemoryList" />
+              </label>
+              <label>BCC:
+                <input id="composeBcc" name="bcc" type="text" inputmode="email" placeholder="bcc@example.com；可多个邮箱用逗号/分号分隔" autocomplete="off" list="composeEmailMemoryList" />
+              </label>
+            </div>
+            <datalist id="composeEmailMemoryList"></datalist>
+            <datalist id="composeSubjectMemoryList"></datalist>
+            <div class="compose-field-row compact">
+              <label>Email Type:
+                <select id="composeEmailType" name="emailType">
+                  <option value="first">首次开发信</option>
+                  <option value="followup">跟进邮件</option>
+                  <option value="quote">报价后跟进</option>
+                  <option value="sample">样品跟进</option>
+                  <option value="dormant">沉睡客户唤醒</option>
+                </select>
+              </label>
+              <label>Signature:
+                <select id="composeSignatureSelect"></select>
+              </label>
+            </div>
+
+            <div class="foxmail-toolbar" aria-label="富文本工具栏">
+              <button type="button" id="addAttachmentBtn">附件</button>
+              <input id="attachmentInput" type="file" multiple hidden accept=".txt,.csv,.md,.html,.htm,.json,.xml,.rtf,.pdf,.doc,.docx,.docm,.xls,.xlsx,.xlsm,.xlsb,.ppt,.pptx,.pptm,.zip,.rar,image/*,video/*,audio/*" />
+              <button type="button" id="chooseCrmMaterialBtn">CRM资料</button>
+              <button type="button" id="insertLinkBtn">超链接</button>
+              <button type="button" id="insertLocalImageBtn">图片</button>
+              <input id="localImageInput" type="file" accept="image/*" hidden />
+              <button type="button" id="insertTableBtn">表格</button>
+              <button type="button" id="toolbarCopyBtn">复制</button>
+              <button type="button" id="toolbarPasteBtn">粘贴</button>
+              <button type="button" data-editor-command="bold" title="加粗"><strong>B</strong></button>
+              <button type="button" data-editor-command="italic" title="斜体"><em>I</em></button>
+              <button type="button" data-editor-command="underline" title="下划线"><u>U</u></button>
+              <details class="toolbar-more">
+                <summary>更多工具</summary>
+                <div class="toolbar-more-panel">
+                  <select id="fontFamilySelect" title="字体">
+                    <option value="Arial">Arial</option>
+                    <option value="Calibri">Calibri</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Verdana">Verdana</option>
+                  </select>
+                  <select id="fontSizeSelect" title="字号">
+                    <option value="2">12px</option>
+                    <option value="3" selected>14px</option>
+                    <option value="4">16px</option>
+                    <option value="5">18px</option>
+                  </select>
+                  <button type="button" data-editor-command="strikeThrough" title="删除线"><s>S</s></button>
+                  <button type="button" data-editor-command="justifyLeft" title="左对齐">左</button>
+                  <button type="button" data-editor-command="justifyCenter" title="居中">中</button>
+                  <button type="button" data-editor-command="justifyRight" title="右对齐">右</button>
+                  <button type="button" data-editor-command="insertUnorderedList" title="项目符号">• 列表</button>
+                  <button type="button" data-editor-command="insertOrderedList" title="编号列表">1. 列表</button>
+                  <select id="fontColorPreset" title="字体颜色">
+                    <option value="#202522">黑色</option>
+                    <option value="#6b7280">灰色</option>
+                    <option value="#1d4ed8">蓝色</option>
+                    <option value="#dc2626">红色</option>
+                    <option value="#15803d">绿色</option>
+                  </select>
+                  <input id="fontColorInput" type="color" title="自定义字体颜色" value="#202522" />
+                  <button type="button" id="insertImageUrlBtn">图片URL</button>
+                  <button type="button" id="toolbarCutBtn">剪切</button>
+                  <button type="button" id="toolbarUndoBtn">撤销</button>
+                  <button type="button" id="toolbarRedoBtn">重做</button>
+                  <button type="button" id="toolbarSelectAllBtn">全选</button>
+                  <button type="button" id="toolbarClearFormatBtn">清除格式</button>
+                  <button type="button" id="toolbarPastePlainBtn">粘贴为纯文本</button>
+                  <button type="button" id="previewEmailBtn">预览</button>
+                </div>
+              </details>
+            </div>
+
+            <label class="compose-body-label">正文:
+              <div id="composeBody" class="rich-editor" contenteditable="true" data-placeholder="在这里写邮件。右侧生成后点击插入到正文，会覆盖当前正文。"></div>
+            </label>
+            <div class="attachment-list" id="attachmentList"></div>
+            <label class="tracked-attachment-toggle">
+              <input id="sendAttachmentsAsTrackedLinks" type="checkbox" autocomplete="off" />
+              <span>需要追踪附件时可勾选；超过直发请求体限制的附件会自动改为云端链接发送。客户点击后进入在线页面，系统记录打开、下载和页面停留时长。</span>
+            </label>
+            <div class="compose-page-actions">
+              <span id="composeStatus">当前不会真实发送邮件；可保存草稿、复制到 Foxmail/Gmail，或保存为模拟发件记录。</span>
+              <div>
+                <button class="primary-btn" id="sendComposeBtn" type="button">发送邮件</button>
+                <button class="primary-btn" id="saveComposeDraftBtn" type="submit">保存草稿</button>
+              </div>
+            </div>
+          </form>
+
+          <aside class="compose-context-panel compose-assistant-panel" aria-label="DeepSeek邮件助手">
+            <div class="compose-research-box">
+              <div class="ai-paste-head">
+                <span id="composeAiPasteSummary">客户资料 / 想法</span>
+                <button class="ghost-btn" id="composeToggleContextBtn" type="button">展开</button>
+              </div>
+              <div class="ai-paste-preview" id="composeAiPreview">可粘贴 LinkedIn/官网/社媒内容，DeepSeek 或模板会结合客户信息生成草稿。</div>
+              <div class="assistant-attachment-tools">
+                <button class="ghost-btn assistant-plus-btn" id="assistantAttachBtn" type="button">+ 附件</button>
+                <button class="ghost-btn assistant-plus-btn" id="assistantCrmMaterialBtn" type="button">+ CRM资料</button>
+                <input id="assistantAttachmentInput" type="file" multiple hidden accept=".txt,.csv,.md,.html,.htm,.json,.xml,.rtf,.pdf,.doc,.docx,.docm,.xls,.xlsx,.xlsm,.xlsb,.ppt,.pptx,.pptm,.zip,.rar,image/*,video/*,audio/*" />
+                <span>作为 AI 分析资料，不会自动加入邮件附件。支持 Word、Excel、PPT、PDF、图片、视频、ZIP 等常见文件。</span>
+              </div>
+              <div class="assistant-attachment-list" id="assistantAttachmentList"></div>
+              <textarea id="composeAiInput" rows="8" placeholder="粘贴客户社媒/官网资料，或写：语气自然一点，突出OEM和磨豆咖啡机"></textarea>
+            </div>
+            <div class="assistant-control-grid">
+              <label>语气
+                <select id="assistantTone">
+                  <option value="brief">简短直接</option>
+                  <option value="formal">专业正式</option>
+                  <option value="old-customer">老客户跟进</option>
+                  <option value="fair-followup">展会后跟进</option>
+                  <option value="price">价格沟通</option>
+                </select>
+              </label>
+            </div>
+            <div class="assistant-actions">
+              <button class="primary-btn" id="deepseekComposeBtn" type="button">生成邮件</button>
+              <button class="ghost-btn" id="insertAiResultBtn" type="button">插入到正文</button>
+            </div>
+            <label class="assistant-result-label">AI结果
+              <textarea id="assistantResult" rows="12" placeholder="生成后的邮件内容会显示在这里。"></textarea>
+            </label>
+          </aside>
+        </div>
+
+        <section class="compose-history-section" aria-label="历史往来邮件">
+          <div class="compose-history-head">
+            <div>
+              <p class="eyebrow">EMAIL HISTORY</p>
+              <h3>历史往来邮件</h3>
+              <p id="composeHistorySummary">输入邮箱后自动匹配本地草稿、发件记录、收件记录和模拟追踪状态。</p>
+            </div>
+            <div class="compose-history-tools">
+              <input id="composeHistorySearch" dir="ltr" autocomplete="off" placeholder="搜索主题 / 内容" />
+              <button class="ghost-btn" id="summarizeHistoryBtn" type="button">AI总结历史邮件</button>
+            </div>
+          </div>
+          <div class="compose-history-layout">
+            <div class="compose-history-list" id="composeHistoryList"></div>
+            <aside class="compose-history-detail" id="composeHistoryDetail"></aside>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog class="email-preview-dialog" id="emailPreviewDialog">
+      <div class="history-detail-head">
+        <div>
+          <p class="eyebrow">Email Preview</p>
+          <h3>邮件预览</h3>
+        </div>
+        <button class="ghost-btn" id="closePreviewBtn" type="button">关闭</button>
+      </div>
+      <div id="emailPreviewBody"></div>
+    </dialog>
+
+    <dialog class="email-preview-dialog crm-material-dialog" id="crmMaterialDialog">
+      <div class="history-detail-head">
+        <div>
+          <p class="eyebrow">CRM MATERIALS</p>
+          <h3>选择公司和产品资料</h3>
+          <p>可把资料加入 DeepSeek 分析，也可把小文件加入邮件附件；大文件或仅保存元数据的资料会插入文件说明，方便你在 Foxmail/Gmail 手动附加。</p>
+        </div>
+        <button class="ghost-btn" id="closeCrmMaterialDialogBtn" type="button">关闭</button>
+      </div>
+      <input id="crmMaterialSearch" class="crm-material-search" dir="ltr" autocomplete="off" placeholder="搜索文件名 / 标签 / 备注 / 类型" />
+      <div class="crm-material-list" id="crmMaterialList"></div>
+    </dialog>
+
+    <div class="toast" id="composeToast" role="status" aria-live="polite"></div>
+    <script src="./crm-imported-customers.example.js"></script>
+    <script src="./compose.js"></script>
+  </body>
+</html>

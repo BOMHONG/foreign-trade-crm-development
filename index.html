@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>咖啡机客户开发 CRM</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <section class="auth-screen" id="authScreen" aria-label="CRM 登录">
+      <form class="auth-card" id="loginForm">
+        <div>
+          <p class="eyebrow">FORYAL CRM</p>
+          <h1>登录客户开发系统</h1>
+          <p>使用管理员创建的邮箱和密码登录。普通用户只能看到自己负责的客户。</p>
+        </div>
+        <label>登录邮箱
+          <input id="loginEmailInput" type="email" autocomplete="username" placeholder="sales.manager@example.com" required />
+        </label>
+        <label>登录密码
+          <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-top:4px">
+          <input id="loginRememberMe" type="checkbox" checked style="width:auto;margin:0" />
+          保持登录（30天）
+        </label>
+        <button class="primary-btn" type="submit">登录</button>
+        <p class="auth-error" id="loginError" role="alert"></p>
+      </form>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
+      <header class="wk-top-nav" aria-label="CRM 顶部模块导航">
+        <div class="wk-brand">
+          <span class="wk-logo" aria-hidden="true">F</span>
+          <strong>FORYAL CRM</strong>
+        </div>
+        <nav class="wk-module-nav" aria-label="业务模块">
+          <button class="wk-module-item" type="button" data-module="dashboard">仪表盘</button>
+          <button class="wk-module-item active" type="button" data-nav-target="customerSection">客户</button>
+          <button class="wk-module-item" type="button" data-module="leads">线索</button>
+          <button class="wk-module-item" type="button" data-module="quotes">报价单</button>
+          <button class="wk-module-item" type="button" data-module="followups">跟进</button>
+          <button class="wk-module-item" type="button" data-nav-target="mailSection">邮箱</button>
+          <button class="wk-module-item" type="button" data-nav-target="outreachQueueSection">开发信队列</button>
+          <button class="wk-module-item" type="button" data-module="products">公司和产品</button>
+          <button class="wk-module-item" type="button" data-nav-target="settingsPanel">设置</button>
+        </nav>
+      </header>
+
+      <aside class="sidebar" aria-label="CRM 概览">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+          </div>
+          <div>
+            <p class="eyebrow">EXPORT CRM</p>
+            <h1>咖啡机客户开发</h1>
+          </div>
+        </div>
+
+        <div class="machine-visual" aria-hidden="true">
+          <div class="machine-top"></div>
+          <div class="machine-face">
+            <div class="gauge"></div>
+            <div class="display"></div>
+            <div class="spouts"></div>
+          </div>
+          <div class="machine-base"></div>
+        </div>
+
+        <nav class="nav-stack compact-only" aria-label="业务视图" hidden>
+          <p class="sidebar-group-title">客户管理</p>
+          <button class="nav-item active" type="button" data-nav-target="customerSection">客户</button>
+          <button class="nav-item" type="button" data-nav-target="mailSection">邮箱</button>
+          <button class="nav-item" type="button" data-nav-target="outreachQueueSection">开发信队列</button>
+          <button class="nav-item" type="button" data-nav-target="settingsPanel">设置</button>
+        </nav>
+
+        <div class="quick-stats">
+          <div>
+            <span id="statTotal">0</span>
+            <p>客户总数</p>
+          </div>
+          <div>
+            <span id="statHot">0</span>
+            <p>A 级客户</p>
+          </div>
+          <div>
+            <span id="statDue">0</span>
+            <p>待跟进</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Foreign Trade Sales Desk</p>
+            <h2>客户开发工作台</h2>
+          </div>
+          <div class="topbar-actions">
+            <span class="current-user-chip" id="currentUserChip">未登录</span>
+            <button class="ghost-btn" id="logoutBtn" type="button">退出</button>
+            <button class="ghost-btn" id="importCustomersBtn" type="button" data-admin-only>导入客户 CSV</button>
+            <input id="importCustomersInput" type="file" accept=".csv,text/csv" hidden />
+            <button class="ghost-btn" id="exportBtn" type="button" data-admin-only>导出 CSV</button>
+            <button class="primary-btn" id="newCustomerBtn" type="button">新增客户</button>
+          </div>
+        </header>
+
+        <section class="pipeline" aria-label="销售阶段统计" id="pipelineStats"></section>
+
+        <section class="module-workbench" id="moduleWorkbench" hidden aria-label="业务模块工作台">
+          <div class="module-head">
+            <div>
+              <p class="eyebrow" id="moduleEyebrow">FORYAL CRM</p>
+              <h3 id="moduleTitle">业务模块</h3>
+              <p id="moduleDescription">按模块管理外贸开发数据。</p>
+            </div>
+            <div class="module-actions">
+              <button class="ghost-btn" id="moduleImportBtn" type="button">导入 CSV</button>
+              <input id="moduleImportInput" type="file" accept=".csv,text/csv" hidden />
+              <button class="ghost-btn" id="moduleExportBtn" type="button">导出 CSV</button>
+              <button class="ghost-btn danger" id="moduleBulkDeleteBtn" type="button" disabled>删除选中</button>
+              <button class="primary-btn" id="moduleNewBtn" type="button">新增</button>
+            </div>
+          </div>
+          <div class="module-summary" id="moduleSummary"></div>
+          <div class="module-toolbar">
+            <label class="search-box" for="moduleSearchInput">
+              <input id="moduleSearchInput" type="search" dir="ltr" autocomplete="off" placeholder="搜索当前模块" />
+            </label>
+            <select id="moduleFilterSelect" aria-label="模块筛选"></select>
+          </div>
+          <div class="module-grid">
+            <div class="module-table-wrap">
+              <table class="module-table" id="moduleTable"></table>
+            </div>
+            <aside class="module-detail" aria-label="模块详情">
+              <div class="module-detail-head">
+                <div>
+                  <p class="eyebrow" id="moduleDetailStatus">DETAIL</p>
+                  <h4 id="moduleDetailTitle">选择一条记录</h4>
+                </div>
+              </div>
+              <form class="module-form" id="moduleForm"></form>
+              <div class="module-form-actions">
+                <button class="ghost-btn danger" id="moduleDeleteBtn" type="button">删除</button>
+                <button class="primary-btn" id="moduleSaveBtn" type="submit" form="moduleForm">保存</button>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="content-grid" id="customerSection">
+          <div class="customer-panel">
+            <div class="customer-view-head">
+              <div>
+                <p class="eyebrow">CRM</p>
+                <h3>客户管理</h3>
+              </div>
+              <div class="customer-view-actions">
+                <button class="primary-btn" id="newCustomerTableBtn" type="button">新建客户</button>
+                <button class="ghost-btn" id="duplicateCheckBtn" type="button">查重</button>
+              </div>
+            </div>
+            <div class="customer-scope-bar" aria-label="客户范围筛选">
+              <button class="scope-chip active" type="button" data-customer-scope="all">全部客户 <span id="scopeAllCount">0</span></button>
+              <button class="scope-chip" type="button" data-customer-scope="hot">A 级客户 <span id="scopeHotCount">0</span></button>
+              <button class="scope-chip" type="button" data-customer-scope="due">待跟进 <span id="scopeDueCount">0</span></button>
+              <button class="scope-chip" type="button" data-customer-scope="won">已成交 <span id="scopeWonCount">0</span></button>
+            </div>
+            <div class="panel-toolbar">
+              <label class="search-box" for="searchInput">
+                <input id="searchInput" type="search" dir="ltr" autocomplete="off" placeholder="搜索公司、联系人、国家、产品" />
+              </label>
+              <select id="stageFilter" aria-label="阶段筛选">
+                <option value="all">全部阶段</option>
+                <option value="新线索">新线索</option>
+                <option value="已联系">已联系</option>
+                <option value="已报价">已报价</option>
+                <option value="样品/测试">样品/测试</option>
+                <option value="谈判中">谈判中</option>
+                <option value="已成交">已成交</option>
+              </select>
+            </div>
+
+            <div class="customer-list" id="customerList" aria-live="polite"></div>
+          </div>
+
+          <aside class="detail-panel" aria-label="客户详情">
+            <div class="detail-head">
+              <div>
+                <p class="eyebrow" id="detailStage">新线索</p>
+                <h3 id="detailTitle">选择或新增客户</h3>
+              </div>
+              <div class="contact-actions">
+                <a class="icon-btn" id="linkedinLink" href="#" target="_blank" rel="noreferrer" title="打开 LinkedIn">LI</a>
+                <a class="icon-btn" id="emailLink" href="#" title="发送邮件">@</a>
+                <a class="icon-btn" id="whatsappLink" href="#" target="_blank" rel="noreferrer" title="打开 WhatsApp">WA</a>
+              </div>
+            </div>
+
+            <div class="customer-follow-card" id="followSection">
+              <div class="section-head compact-head">
+                <div>
+                  <p class="eyebrow">Follow-up</p>
+                  <h3>跟进备注</h3>
+                </div>
+              </div>
+              <form class="follow-form" id="followForm">
+                <input name="date" type="date" />
+                <select name="channel">
+                  <option>Email</option>
+                  <option>LinkedIn</option>
+                  <option>WhatsApp</option>
+                  <option>Instagram</option>
+                  <option>电话</option>
+                  <option>展会</option>
+                  <option>拜访</option>
+                  <option>其他</option>
+                </select>
+                <select name="followType">
+                  <option>首次开发</option>
+                  <option>已发送资料</option>
+                  <option>已报价</option>
+                  <option>样品沟通</option>
+                  <option>样品测试中</option>
+                  <option>客户反馈</option>
+                  <option>价格谈判</option>
+                  <option>等待回复</option>
+                  <option>沉睡唤醒</option>
+                  <option>成交维护</option>
+                </select>
+                <input name="summary" placeholder="跟进内容：发了什么 / 沟通了什么" required />
+                <input name="feedback" placeholder="客户反馈：是否回复 / 反对点" />
+                <input name="concerns" placeholder="客户关心点：MOQ / FOB / 样品 / 认证" />
+                <select name="stage">
+                  <option>首次开发</option>
+                  <option>未回复</option>
+                  <option>已联系</option>
+                  <option>已报价</option>
+                  <option>报价后未回复</option>
+                  <option>样品寄出</option>
+                  <option>样品测试</option>
+                  <option>谈判中</option>
+                  <option>沉睡</option>
+                  <option>已成交</option>
+                </select>
+                <input name="nextAction" placeholder="推荐下一步动作 / 例如 7天后再次联系" />
+                <select name="reminderCycle">
+                  <option value="7">7天</option>
+                  <option value="3">3天</option>
+                  <option value="10">10天</option>
+                  <option value="14">14天</option>
+                  <option value="30">30天</option>
+                  <option value="custom">自定义</option>
+                </select>
+                <input name="nextDate" type="date" />
+                <select name="completed">
+                  <option value="否">未完成</option>
+                  <option value="是">已完成</option>
+                </select>
+                <input name="result" placeholder="跟进结果：待回复 / 已约样品 / 已发报价" />
+                <button class="primary-btn" type="submit">记录</button>
+              </form>
+              <div class="timeline" id="timeline"></div>
+            </div>
+
+            <form class="customer-form" id="customerForm">
+              <div class="form-row">
+                <label>公司名称<input name="company" required /></label>
+                <label>联系人<input name="contact" required /></label>
+              </div>
+              <div class="form-row">
+                <label>职位<input name="title" /></label>
+                <label>国家/地区<input name="country" /></label>
+              </div>
+              <div class="form-row">
+                <label>官网<input name="website" type="url" placeholder="https://..." /></label>
+                <label>客户来源<input name="source" placeholder="LinkedIn / 展会 / Google" /></label>
+              </div>
+              <div class="form-row">
+                <label>客户类型
+                  <select name="segment">
+                    <option>进口商</option>
+                    <option>经销商</option>
+                    <option>咖啡烘焙商</option>
+                    <option>酒店/餐饮集团</option>
+                    <option>电商卖家</option>
+                    <option>品牌方</option>
+                  </select>
+                </label>
+                <label>阶段
+                  <select name="stage">
+                    <option>新线索</option>
+                    <option>已联系</option>
+                    <option>已报价</option>
+                    <option>样品/测试</option>
+                    <option>谈判中</option>
+                    <option>已成交</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>优先级
+                  <select name="priority">
+                    <option>A</option>
+                    <option>B</option>
+                    <option>C</option>
+                  </select>
+                </label>
+                <label>负责人<input name="owner" /></label>
+              </div>
+              <div class="form-row">
+                <label>LinkedIn<input name="linkedin" type="url" placeholder="https://www.linkedin.com/in/..." /></label>
+                <label>邮箱<input name="email" type="email" /></label>
+              </div>
+              <div class="form-row">
+                <label>WhatsApp<input name="whatsapp" placeholder="+49 170 000 000" /></label>
+                <label>Instagram<input name="instagram" type="url" placeholder="https://www.instagram.com/..." /></label>
+              </div>
+              <div class="form-row">
+                <label>Facebook<input name="facebook" type="url" placeholder="https://www.facebook.com/..." /></label>
+                <label>YouTube<input name="youtube" type="url" placeholder="https://www.youtube.com/..." /></label>
+              </div>
+              <div class="form-row">
+                <label>推荐产品
+                  <select name="product">
+                    <option>CM-1600B</option>
+                    <option>CM-1700MY</option>
+                    <option>CM-1302MYC</option>
+                    <option>OEM / Private Label</option>
+                    <option>SKD / CKD</option>
+                  </select>
+                </label>
+                <label>预计年需求<input name="volume" placeholder="100 台/年" /></label>
+              </div>
+              <div class="form-row">
+                <label>付款风险
+                  <select name="paymentRisk">
+                    <option>未知</option>
+                    <option>TT</option>
+                    <option>30% deposit + 70% before shipment</option>
+                    <option>OA风险</option>
+                    <option>60/90/120 days credit风险</option>
+                    <option>寄售风险</option>
+                  </select>
+                </label>
+                <label>是否已报价
+                  <select name="isQuoted">
+                    <option>否</option>
+                    <option>是</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>是否样品客户
+                  <select name="isSample">
+                    <option>否</option>
+                    <option>是</option>
+                  </select>
+                </label>
+                <label>是否黑名单
+                  <select name="isBlacklisted">
+                    <option>否</option>
+                    <option>是</option>
+                  </select>
+                </label>
+              </div>
+              <label>客户备注<textarea name="notes" rows="3" placeholder="采购关注点、认证要求、目标价格、竞品信息"></textarea></label>
+              <div class="form-actions">
+                <button class="ghost-btn danger" id="deleteCustomerBtn" type="button">删除</button>
+                <button class="primary-btn" type="submit">保存客户</button>
+              </div>
+            </form>
+          </aside>
+        </section>
+
+        <section class="mail-panel" id="mailSection" aria-label="邮件工作台">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Mailbox</p>
+              <h3>邮件工作台</h3>
+            </div>
+          </div>
+
+          <div class="mail-layout mail-layout-foxmail">
+            <!-- LEFT: Folders -->
+            <aside class="mail-left-pane">
+              <button class="mail-compose-btn" id="inlineComposeBtn" type="button">✉️ 写邮件</button>
+              <nav class="mail-folders" aria-label="邮箱文件夹">
+                <button class="mail-folder active" type="button" data-mailbox="inbox">📥 收件箱<span id="inboxCount">0</span></button>
+                <button class="mail-folder" type="button" data-mailbox="unread">📨 未读邮件</button>
+                <button class="mail-folder" type="button" data-mailbox="starred">⭐ 星标邮件</button>
+                <button class="mail-folder" type="button" data-mailbox="sent">📤 已发送<span id="sentCount">0</span></button>
+                <button class="mail-folder" type="button" data-mailbox="drafts">📝 草稿箱<span id="draftsCount">0</span></button>
+                <button class="mail-folder" type="button" data-mailbox="trash">🗑 已删除<span id="trashCount">0</span></button>
+              </nav>
+              <div class="mail-folder-section-title">客户邮件</div>
+              <nav class="mail-folders">
+                <button class="mail-folder" type="button" data-mailbox="linked">🔗 已关联客户</button>
+                <button class="mail-folder" type="button" data-mailbox="unlinked">❓ 未关联客户</button>
+                <button class="mail-folder" type="button" data-mailbox="priority">🔥 重点客户邮件</button>
+                <button class="mail-folder" type="button" data-mailbox="needs-reply">📬 需要回复</button>
+              </nav>
+              <div class="mail-folder-section-title">工具</div>
+              <button class="ghost-btn" id="refreshInboxBtn" type="button" style="width:100%">🔄 邮件同步</button>
+            </aside>
+
+            <!-- MIDDLE: Mail list -->
+            <div class="mail-mid-pane">
+              <div class="mail-mid-toolbar">
+                <input id="mailSearchInput" type="search" placeholder="搜索邮件" />
+                <select id="mailSortSelect" aria-label="排序">
+                  <option value="desc">最新</option><option value="asc">最早</option>
+                </select>
+              </div>
+              <div class="mail-mid-actions">
+                <label><input id="selectAllVisibleMails" type="checkbox" /> 全选</label>
+                <span id="selectedMailCount"></span>
+                <button class="ghost-btn danger" id="deleteCheckedMailsBtn" type="button">删除</button>
+              </div>
+              <div class="mail-list-foxmail" id="mailList"></div>
+            </div>
+
+            <!-- RIGHT: Reading pane -->
+            <div class="mail-right-pane" id="mailReader">
+              <div class="mail-reader-empty">选择一封邮件查看内容</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="outreach-panel" id="outreachQueueSection" aria-label="开发信队列">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">开发信队列</p>
+              <h3>开发信任务计划</h3>
+            </div>
+            <div class="outreach-actions">
+              <button class="ghost-btn" id="outreachRefreshBtn" type="button">刷新规则</button>
+              <button class="primary-btn" id="outreachGenerateSelectedBtn" type="button">生成所选客户</button>
+            </div>
+          </div>
+
+          <div class="outreach-summary" id="outreachSummary"></div>
+
+          <div class="outreach-settings-row">
+            <label>发件品牌
+              <select id="outreachBrandSender">
+                <option value="FORYAL">FORYAL</option>
+                <option value="AISON">AISON</option>
+              </select>
+            </label>
+            <label>每个邮箱每日发送上限
+              <input id="outreachDailyLimit" type="number" min="1" max="200" value="20" />
+            </label>
+            <label class="checkbox-line">
+              <input id="outreachAutoSend" type="checkbox" />
+              自动发送已批准模板
+            </label>
+            <button class="ghost-btn" id="outreachSaveSettingsBtn" type="button">保存设置</button>
+          </div>
+
+          <div class="outreach-toolbar">
+            <input id="outreachSearchInput" type="search" placeholder="搜索客户、邮箱、国家、产品" />
+            <select id="outreachStatusFilter">
+              <option value="all">全部状态</option>
+              <option value="to_generate">待生成</option>
+              <option value="pending_review">待审核</option>
+              <option value="approved">已批准</option>
+              <option value="scheduled">待发送</option>
+              <option value="sent">已发送</option>
+              <option value="failed">发送失败</option>
+              <option value="stopped">已停止</option>
+            </select>
+          </div>
+
+          <div class="outreach-layout">
+            <div class="outreach-card">
+              <div class="outreach-card-head">
+                <div>
+                  <p class="eyebrow">可开发客户</p>
+                  <h4>候选客户</h4>
+                </div>
+                <span id="outreachEligibleCount"></span>
+              </div>
+              <div class="outreach-eligible-list" id="outreachEligibleList"></div>
+            </div>
+
+            <div class="outreach-card outreach-main-card">
+              <div class="outreach-card-head">
+                <div>
+                  <p class="eyebrow">任务队列</p>
+                  <h4>审核、排期和模拟发送</h4>
+                </div>
+              </div>
+              <div class="outreach-table-wrap">
+                <table class="outreach-table" id="outreachQueueTable"></table>
+              </div>
+            </div>
+          </div>
+
+          <div class="outreach-detail-grid">
+            <div class="outreach-card" id="outreachTaskDetail"></div>
+            <div class="outreach-card">
+              <div class="outreach-card-head">
+                <div>
+                  <p class="eyebrow">邮件活动记录</p>
+                  <h4>开发信操作记录</h4>
+                </div>
+              </div>
+              <div class="outreach-activity-log" id="outreachActivityLog"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="reminder-panel" id="reminderPanel" aria-label="跟进提醒">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Follow-up Radar</p>
+              <h3>跟进与节日提醒</h3>
+            </div>
+            <div class="mail-actions">
+              <button class="ghost-btn" id="refreshRemindersBtn" type="button">刷新提醒</button>
+            </div>
+          </div>
+          <div class="reminder-list" id="reminderList"></div>
+        </section>
+
+        <section class="settings-panel" id="settingsPanel" aria-label="设置页">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Settings</p>
+              <h3>设置</h3>
+            </div>
+          </div>
+
+          <form class="settings-form" id="aiSettingsForm">
+            <label>Provider
+              <select id="aiProviderSelect">
+                <option value="deepseek">DeepSeek</option>
+                <option value="template">Template Only</option>
+              </select>
+            </label>
+            <label>DeepSeek API Key
+              <input id="deepseekApiKeyInput" type="password" autocomplete="off" placeholder="API key placeholder" />
+            </label>
+            <label>Base URL
+              <input id="deepseekBaseUrlInput" value="https://api.deepseek.com" />
+            </label>
+            <label>模型
+              <select id="deepseekModelInput">
+                <option value="deepseek-chat">deepseek-chat</option>
+                <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+                <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+              </select>
+            </label>
+            <div class="settings-actions">
+              <span id="aiSettingsStatus">未保存 API Key</span>
+              <button class="ghost-btn" id="clearDeepseekKeyBtn" type="button" data-admin-only>清除 Key</button>
+              <button class="primary-btn" type="submit">保存设置</button>
+            </div>
+          </form>
+
+          <section class="settings-users" aria-label="两人权限设置">
+            <div class="section-head compact-head">
+              <div>
+                <p class="eyebrow">Users</p>
+                <h3>两人权限</h3>
+              </div>
+            </div>
+            <form class="settings-user-form" id="userSettingsForm">
+              <label>姓名<input id="userNameInput" placeholder="Lina" required /></label>
+              <label>邮箱<input id="userEmailInput" type="email" placeholder="sales@example.com" required /></label>
+              <label>初始密码<input id="userPasswordInput" type="password" placeholder="至少 6 位" required /></label>
+              <label>绑定邮箱<input id="userMailboxInput" type="email" placeholder="admin@example.com" /></label>
+              <label>角色
+                <select id="userRoleInput">
+                  <option value="admin">管理员</option>
+                  <option value="user">普通用户</option>
+                </select>
+              </label>
+              <button class="primary-btn" type="submit">添加用户</button>
+            </form>
+            <div class="settings-users-table" id="settingsUsersTable"></div>
+          </section>
+
+          <section class="settings-signatures" aria-label="邮箱签名管理">
+            <div class="section-head compact-head">
+              <div>
+                <p class="eyebrow">Email Signature</p>
+                <h3>邮箱签名</h3>
+              </div>
+            </div>
+            <form class="signature-form" id="signatureForm">
+              <label>签名名称<input id="signatureNameInput" placeholder="Lina 默认签名" required /></label>
+              <label>适用用户
+                <select id="signatureUserInput"></select>
+              </label>
+              <label>签名内容
+                <textarea id="signatureBodyInput" rows="6" placeholder="Lina Mei&#10;Sales Director&#10;Demo Export Company&#10;Email: admin@example.com&#10;WhatsApp: +1 555 010 1000&#10;Website: https://..."></textarea>
+              </label>
+              <div class="settings-actions">
+                <button class="primary-btn" type="submit">保存签名</button>
+              </div>
+            </form>
+            <div class="signature-list" id="signatureList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./crm-imported-customers.example.js"></script>
+    <script src="./crm-data-store.js"></script>
+    <script src="./outreach-queue.js"></script>
+    <script src="./app.js"></script>
+    <script src="./module-crud.js"></script>
+    <script src="./customer-crm.js"></script>
+  </body>
+</html>
